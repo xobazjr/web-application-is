@@ -10,8 +10,7 @@ from sklearn.ensemble import RandomForestRegressor
 def show():
     st.title("🤖 Machine Learning Page")
     st.write("นี่คือหน้าสำหรับพยากรณ์ราคาที่ดิน")
-if __name__ == "__main__":
-    show()
+    
 
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
