@@ -25,6 +25,11 @@ Y = df["MONTHLY_INCOME"]
 income_mean = df.groupby("YEAR")["MONTHLY_INCOME"].mean()#เอาไว้ใช้กับกราฟแท่งโดยเฉพาะ
 
 
+#8บันทึกข้อมูล
+df.to_csv("processed_data.csv", index=False, encoding="utf-8-sig")
+df.to_pickle("processed_data.pkl")
+
+
 # พล็อตกราฟ
 plt.figure(figsize=(10, 5))#ขนาด
 #plt.plot(X, Y, 'o', alpha=0.5)  # ใช้ 'o' เพื่อให้เป็นจุด 
