@@ -8,8 +8,11 @@ pip install tensorflow keras torch torchvision torchaudio scikit-learn pandas nu
 # การเข้าทำงานเปิดเว้ป
     cd Aicreate
     python NeuronTest.py
-    python machine-learning.py
+    python machinelearning.py
     streamlit run Web.py
+    streamlit run machinelearning.py
+    streamlit run app.py
+
 # แหล่งที่มาอ้างองการทำงาน
 
     การใช้tensorflow 

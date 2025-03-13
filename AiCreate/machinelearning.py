@@ -7,6 +7,9 @@ import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
 
+def show():
+    st.title("🤖 Machine Learning Page")
+    st.write("นี่คือหน้าสำหรับพยากรณ์ราคาที่ดิน")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 file_path = os.path.join(BASE_DIR, "../dataset/Bangkok Land Data.csv")
