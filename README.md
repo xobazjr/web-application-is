@@ -3,11 +3,12 @@
 
 # ก่อนนำไฟล์ไปใช้ควรติดตั้งตามคำสั่งนี้ใน เทอมินอลก่อน
 
-pip install tensorflow keras torch torchvision torchaudio scikit-learn pandas numpy matplotlib seaborn streamlit fastapi uvicorn opencv-python requests pillow tqdm jupyter notebook
+pip install tensorflow keras torch torchvision torchaudio scikit-learn pandas numpy matplotlib seaborn streamlit fastapi uvicorn opencv-python requests pillow tqdm jupyter notebook seaborn
 
 # การเข้าทำงานเปิดเว้ป
     cd Aicreate
     python NeuronTest.py
+    python machine-learning.py
     streamlit run Web.py
 # แหล่งที่มาอ้างองการทำงาน
 

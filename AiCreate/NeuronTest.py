@@ -4,6 +4,9 @@
 import os #มันเป็นอะไรไม่รู้ซึ้งผมก็ต้องปิดด้วยคำสั่งนี้
 os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"#มันเป็นอะไรไม่รู้ซึ้งผมก็ต้องปิดด้วยคำสั่งนี้
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+file_path = os.path.join(BASE_DIR, "../dataset/Data from NSO Catalog.csv")
+
 import tensorflow as tf 
 from tensorflow import keras
 import pandas as pd
@@ -15,7 +18,9 @@ from sklearn.model_selection import train_test_split
 matplotlib.rc("font", family="Tahoma") #ภาษาไทยไม่รองรับจึงต้องใส่
 
 # นำเข้าข้อมูลตัวอย่าง
-df = pd.read_csv("dataset/Data from NSO Catalog.csv", encoding="utf-8-sig")
+df = pd.read_csv(file_path, encoding="utf-8-sig")
+
+
 
 # print(df.head()) #แสดง5ตัวแรก
 
@@ -26,8 +31,8 @@ income_mean = df.groupby("YEAR")["MONTHLY_INCOME"].mean()#เอาไว้ใ�
 
 
 #8บันทึกข้อมูล
-df.to_csv("processed_data.csv", index=False, encoding="utf-8-sig")
-df.to_pickle("processed_data.pkl")
+df.to_pickle("processed_data.pkl")  # ใช้ Pickle 
+df.to_csv("processed_data.csv", index=False, encoding="utf-8-sig")  
 
 
 # พล็อตกราฟ

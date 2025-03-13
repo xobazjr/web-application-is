@@ -1,18 +1,25 @@
 import streamlit as st
 import pandas as pd
+import os
 import numpy as np
 import joblib
 import matplotlib.pyplot as plt
-import seaborn as sns
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
 
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+file_path = os.path.join(BASE_DIR, "../dataset/Bangkok Land Data.csv")
+
 # Load dataset
 @st.cache_data
+
+
+
 def load_data():
-    file_path = "/Users/xobazjr/Documents/GitHub/web-application-is/dataset/Bangkok Land Data.csv"
-    df = pd.read_csv(file_path)
-    return df
+   
+    df = pd.read_csv(file_path, encoding="utf-8-sig")  # โหลดข้อมูล
+    return df  # ส่ง DataFrame กลับไปให้ใช้งาน
 
 df = load_data()
 
