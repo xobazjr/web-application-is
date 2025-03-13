@@ -10,7 +10,7 @@ from sklearn.ensemble import RandomForestRegressor
 # Load dataset
 @st.cache_data
 def load_data():
-    file_path = "Bangkok Land Data.csv"
+    file_path = "/Users/xobazjr/Documents/GitHub/web-application-is/dataset/Bangkok Land Data.csv"
     df = pd.read_csv(file_path)
     return df
 
