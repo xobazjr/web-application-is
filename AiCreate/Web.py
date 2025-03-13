@@ -6,5 +6,5 @@ import pandas as pd #นำเข้าตัววิเคราะห์ข�
 
 
 
-st.write("hi   my name is Phubet")
+st.write("hi  my name is Phubet")
 
