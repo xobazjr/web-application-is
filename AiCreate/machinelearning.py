@@ -77,35 +77,33 @@ def train_model():
 
     return best_model, scaler, X_test, y_test, y_pred, mae, mse, r2, grid_search.best_params_
 
-# Training and displaying all model metrics
 with st.expander("Train Model"):
-    if st.button("Train Model"):
-        model, scaler, X_test, y_test, y_pred, mae, mse, r2, best_params = train_model()
+    # Automatically train model when page is loaded
+    model, scaler, X_test, y_test, y_pred, mae, mse, r2, best_params = train_model()
 
-        # Display Model Performance
-        st.write(f"**Mean Absolute Error (MAE):** {mae:,.2f} Baht")
-        st.write(f"**Mean Squared Error (MSE):** {mse:,.2f} Baht²")
-        st.write(f"**R² Score:** {r2:,.2f}")
-        st.write(f"**Best Hyperparameters from Grid Search:** {best_params}")
+    # Display Model Performance
+    st.write(f"**Mean Absolute Error (MAE):** {mae:,.2f} Baht")
+    st.write(f"**Mean Squared Error (MSE):** {mse:,.2f} Baht²")
+    st.write(f"**R² Score:** {r2:,.2f}")
 
-        # Plotting Feature Importance
-        feature_importance = model.feature_importances_
-        feature_names = ['UTMMAP1', 'UTMMAP3', 'UTMMAP4']
-        
-        fig, ax = plt.subplots()
-        ax.barh(feature_names, feature_importance)
-        ax.set_title("Feature Importance")
-        st.pyplot(fig)
+    # Plotting Feature Importance
+    feature_importance = model.feature_importances_
+    feature_names = ['UTMMAP1', 'UTMMAP3', 'UTMMAP4']
 
-        # Plotting Residual Plot
-        residuals = y_test - y_pred
-        fig, ax = plt.subplots()
-        ax.scatter(y_pred, residuals)
-        ax.hlines(0, xmin=min(y_pred), xmax=max(y_pred), colors='red', linestyles='dashed')
-        ax.set_title("Residual Plot")
-        ax.set_xlabel("Predicted Prices")
-        ax.set_ylabel("Residuals")
-        st.pyplot(fig)
+    fig, ax = plt.subplots()
+    ax.barh(feature_names, feature_importance)
+    ax.set_title("Feature Importance")
+    st.pyplot(fig)
+
+    # Plotting Residual Plot
+    residuals = y_test - y_pred
+    fig, ax = plt.subplots()
+    ax.scatter(y_pred, residuals)
+    ax.hlines(0, xmin=min(y_pred), xmax=max(y_pred), colors='red', linestyles='dashed')
+    ax.set_title("Residual Plot")
+    ax.set_xlabel("Predicted Prices")
+    ax.set_ylabel("Residuals")
+    st.pyplot(fig)
 
 # Input Features
 with st.expander("Input Features"):
