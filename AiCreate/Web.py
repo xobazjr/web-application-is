@@ -1,90 +1,59 @@
-# ติดตั้งก่อนในเทอมินอล  pip install pandas streamlit matplotlib seaborn
-
-import streamlit as st  # นำเข้าตัวทำเว็บ
-import os
+import streamlit as st
 import pandas as pd
+import numpy as np
+import tensorflow as tf
+from tensorflow import keras
 import matplotlib.pyplot as plt
-import seaborn as sns
+import pickle
+from sklearn.preprocessing import MinMaxScaler
+import matplotlib
+matplotlib.rc("font", family="Tahoma") #ภาษาไทยไม่รองรับจึงต้องใส่
 
-# ระบุพาธของไฟล์ข้อมูล
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-file_path = os.path.join(BASE_DIR, "../processed_data.csv")  
-
-# แสดงหัวข้อ
-st.title("📊 รายได้ครัวเรือนในไทย")
-
-# ลองโหลดข้อมูลจากไฟล์ Pickle ถ้าไม่มีให้โหลดจาก CSV
+# 🔹 โหลดโมเดลและ Scaler ที่ฝึกไว้
 try:
-    df = pd.read_pickle("processed_data.pkl")  
-except:
-    df = pd.read_csv(file_path, encoding="utf-8-sig")
-
-# ตรวจสอบว่าคอลัมน์ที่ต้องการแสดงมีอยู่จริงหรือไม่
-if "MONTHLY_INCOME" not in df.columns or "REGION" not in df.columns or "YEAR" not in df.columns:
-    st.error("🚨 ไม่พบคอลัมน์ที่ต้องใช้ ('MONTHLY_INCOME', 'REGION', 'YEAR') ในไฟล์ข้อมูล กรุณาตรวจสอบ")
-    st.write("📝 คอลัมน์ที่พบในไฟล์:", df.columns.tolist())  # แสดงคอลัมน์ที่มีอยู่
+    model = keras.models.load_model("trained_model.h5", custom_objects={"mse": keras.losses.MeanSquaredError()})
+    with open("scaler.pkl", "rb") as f:
+        scaler = pickle.load(f)
+except FileNotFoundError:
+    st.error("🚨 ไม่พบไฟล์โมเดล `trained_model.h5` หรือ `scaler.pkl` กรุณาฝึกโมเดลก่อน!")
     st.stop()
 
-# กำหนดตัวเลือกช่วงรายได้
-income_options = [10000, 20000, 30000, 40000, 50000]
+# 🔹 ตั้งค่า UI ของเว็บ
+st.title("พยากรณ์รายได้เฉลี่ยของครัวเรือนไทย")
+st.write("กรอกปีที่ต้องการพยากรณ์ แล้วโมเดลจะคำนวณให้คุณ!")
 
-# ถ้าไม่มีค่า income_range ใน session_state หรือค่าที่มีอยู่ไม่ตรงกับตัวเลือก ให้ใช้ค่าแรกเป็นค่าเริ่มต้น
-if "income_range" not in st.session_state or st.session_state["income_range"] not in income_options:
-    st.session_state["income_range"] = income_options[0]  # ใช้ค่าตัวแรกเป็นค่าเริ่มต้น
+# 🔹 รับค่าปีที่ผู้ใช้ต้องการพยากรณ์
+selected_year = st.number_input("กรุณากรอกปีที่ต้องการพยากรณ์:", min_value=2025, max_value=2100, step=1, value=2030)
 
-# สร้าง dropdown ให้ผู้ใช้เลือกช่วงรายได้
-income_range = st.selectbox("เลือกช่วงรายได้ที่ต้องการดู", 
-                            income_options, 
-                            index=income_options.index(st.session_state["income_range"]))
+# 🔹 ตรวจสอบว่า Scaler ใช้งานได้หรือไม่
+try:
+    future_year_scaled = scaler.transform([[selected_year]])
+except ValueError:
+    st.error("มีข้อผิดพลาดในการแปลงค่าปี กรุณาตรวจสอบ `scaler.pkl`")
+    st.stop()
 
-# อัปเดตค่าใน session_state
-st.session_state["income_range"] = income_range
+# 🔹 พยากรณ์รายได้
+predicted_income_scaled = model.predict(future_year_scaled)
+predicted_income = scaler.inverse_transform(predicted_income_scaled)[0][0]
 
-# ลบแถวที่มี NaN ออกจาก DataFrame
-df = df.dropna(subset=["MONTHLY_INCOME", "REGION", "YEAR"])
+# 🔹 แสดงผลลัพธ์
+st.subheader(f"คาดการณ์รายได้ในปี {selected_year}: {predicted_income:,.2f} บาท")
 
-# กรองข้อมูลเฉพาะแถวที่มีรายได้ >= income_range และแสดงเฉพาะ "REGION", "MONTHLY_INCOME", "YEAR"
-filtered_df = df[df["MONTHLY_INCOME"] >= income_range][["REGION", "MONTHLY_INCOME", "YEAR"]]
+# 🔹 พล็อตกราฟแนวโน้มรายได้
+st.subheader("กราฟแนวโน้มรายได้")
+future_years = np.arange(2025, selected_year + 1)
+future_years_scaled = scaler.transform(future_years.reshape(-1, 1))
+predicted_incomes_scaled = model.predict(future_years_scaled)
+predicted_incomes = scaler.inverse_transform(predicted_incomes_scaled)
 
-# ถ้าไม่มีข้อมูลที่ตรงกับช่วงรายได้ที่เลือก ให้แสดงข้อความเตือน
-if filtered_df.empty:
-    st.error("🚨 ไม่มีข้อมูลที่ตรงกับเงื่อนไขที่เลือก กรุณาลองเลือกช่วงรายได้อื่น")
-else:
-    st.write(f"📌 รายได้ครัวเรือนที่มากกว่า {income_range:,} บาท/เดือน พร้อมพื้นที่ที่อยู่")
-    st.dataframe(filtered_df)
+# 🔹 สร้างกราฟ
+fig, ax = plt.subplots(figsize=(8, 4))
+ax.plot(future_years, predicted_incomes, marker='o', linestyle='-', color='b', label='คาดการณ์รายได้')
+ax.set_xlabel("ปี")
+ax.set_ylabel("รายได้เฉลี่ย (บาท)")
+ax.set_title("แนวโน้มรายได้ของครัวเรือนในไทย")
+ax.legend()
+ax.grid(True)
 
-    #  **Scatter Plot แสดงรายได้ครัวเรือนในแต่ละปี** 
-    st.subheader("📊 รายได้ครัวเรือนในแต่ละปี")
-    fig, ax = plt.subplots(figsize=(10, 5))
-    scatter = ax.scatter(filtered_df["YEAR"], filtered_df["MONTHLY_INCOME"], 
-                         c=filtered_df["MONTHLY_INCOME"], cmap="coolwarm", alpha=0.7)
-    ax.set_xlabel("ในแต่ละปี")
-    ax.set_ylabel("รายได้ต่อครัวเรือนของไทย")
-    ax.set_title("รายได้ต่อครัวเรือนในประเทศไทย")
-    plt.colorbar(scatter, label="ระดับรายได้")
-    st.pyplot(fig)
-
-    #  **Bar Chart แสดงจังหวัดที่มีรายได้เฉลี่ยสูงสุด** 
-    income_by_region = filtered_df.groupby("REGION")["MONTHLY_INCOME"].mean().reset_index()
-    income_by_region = income_by_region.sort_values(by="MONTHLY_INCOME", ascending=False)  # เรียงลำดับจากมากไปน้อย
-
-    st.subheader("📊 จังหวัดที่มีรายได้เฉลี่ยสูงสุด")
-    fig, ax = plt.subplots(figsize=(12, 6))
-    sns.barplot(x="MONTHLY_INCOME", y="REGION", data=income_by_region, palette="coolwarm", ax=ax)
-    ax.set_xlabel("รายได้เฉลี่ย (บาท)")
-    ax.set_ylabel("จังหวัด")
-    ax.set_title("รายได้เฉลี่ยสูงสุดในแต่ละจังหวัด")
-    st.pyplot(fig)
-
-    # **Bar Chart แสดงจำนวนครัวเรือนในแต่ละจังหวัด** 
-    count_by_region = filtered_df["REGION"].value_counts().reset_index()
-    count_by_region.columns = ["REGION", "HOUSEHOLD_COUNT"]
-    count_by_region = count_by_region.sort_values(by="HOUSEHOLD_COUNT", ascending=False)  # เรียงลำดับจากมากไปน้อย
-
-    st.subheader("📊 จำนวนครัวเรือนในแต่ละจังหวัด")
-    fig, ax = plt.subplots(figsize=(12, 6))
-    sns.barplot(x="HOUSEHOLD_COUNT", y="REGION", data=count_by_region, palette="viridis", ax=ax)
-    ax.set_xlabel("จำนวนครัวเรือน")
-    ax.set_ylabel("จังหวัด")
-    ax.set_title("จำนวนครัวเรือนในแต่ละจังหวัด")
-    st.pyplot(fig)
+# 🔹 แสดงกราฟบน Streamlit
+st.pyplot(fig)

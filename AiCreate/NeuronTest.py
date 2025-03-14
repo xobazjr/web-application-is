@@ -16,6 +16,7 @@ import matplotlib
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
+import pickle
 
 matplotlib.rc("font", family="Tahoma") #ภาษาไทยไม่รองรับจึงต้องใส่
 
@@ -81,7 +82,8 @@ model = keras.Sequential([
 ])
 
 
-model.compile(optimizer="adam", loss="mse", metrics=["mae"])
+model.compile(optimizer="adam", loss=keras.losses.MeanSquaredError(), metrics=["mae"])
+
 #ลดอาการโอเวอร์
 early_stopping = keras.callbacks.EarlyStopping(monitor="val_loss", patience=5, restore_best_weights=True)
 lr_scheduler = keras.callbacks.ReduceLROnPlateau(monitor="val_loss", factor=0.5, patience=2, min_lr=1e-5)
@@ -101,9 +103,10 @@ print(f"\nTest Loss: {test_loss:.4f} | Test MAE: {test_mae:.4f}")
 
 
 #8บันทึกข้อมูล
-df.to_pickle("processed_data.pkl")  # ใช้ Pickle 
-df.to_csv("processed_data.csv", index=False, encoding="utf-8-sig")  
+model.save("trained_model.h5")
 
+with open("scaler.pkl", "wb") as f:
+    pickle.dump(scaler, f)
 
 # # พล็อตกราฟ
 # plt.figure(figsize=(10, 5))#ขนาด
@@ -147,6 +150,8 @@ plt.legend()
 
 plt.tight_layout()
 plt.show()
+
+
 
 #ทดสอบการเดา
 future_years = np.array([[2025], [2030]]) 
