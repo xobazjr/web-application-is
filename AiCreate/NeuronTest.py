@@ -25,7 +25,7 @@ df = pd.read_csv(file_path, encoding="utf-8-sig")
 #ลบค่าที่ไม่มี
 df = df.replace("UNKNOWN_VALUE", np.nan) 
 df = df.dropna(subset=["YEAR", "MONTHLY_INCOME"]) 
-df = df.sort_values("YEAR")  #เรียงตามปี
+
 
 #แปลง
 df["MONTHLY_INCOME"] = pd.to_numeric(df["MONTHLY_INCOME"], errors="coerce")
@@ -58,18 +58,36 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_
 #     keras.layers.Dense(1, activation="linear")  
 # ])
 # จากอันบนนี่เลยคับขอเสนอลดขนาดลงมา
+# model = keras.Sequential([
+#     keras.layers.Dense(8, activation="relu", input_shape=(X_train.shape[1],)),  # l1
+#     keras.layers.Dropout(0.2),  # ลด 20%
+#     keras.layers.Dense(1, activation="linear") 
+# ])
+
+#ปรับปรุงโมเดล
 model = keras.Sequential([
-    keras.layers.Dense(8, activation="relu", input_shape=(X_train.shape[1],)),  # l1
-    keras.layers.Dropout(0.2),  # ลด 20%
-    keras.layers.Dense(1, activation="linear") 
+    keras.layers.Dense(12, activation="relu", input_shape=(X_train.shape[1],)),  #L1
+    keras.layers.Dropout(0.1),  # ลด 10%
+    keras.layers.Dense(6, activation="relu"),  #L2
+    keras.layers.Dense(1, activation="linear")
 ])
+
+
 
 model.compile(optimizer="adam", loss="mse", metrics=["mae"])
 #ลดอาการโอเวอร์
 early_stopping = keras.callbacks.EarlyStopping(monitor="val_loss", patience=10, restore_best_weights=True)
-
+lr_scheduler = keras.callbacks.ReduceLROnPlateau(monitor="val_loss", factor=0.5, patience=3, min_lr=1e-5)
 #ตีโมเดลด้วยแซ้
-history = model.fit(X_train, y_train, epochs=100, batch_size=16, validation_split=0.2, verbose=1, callbacks=[early_stopping])
+# history = model.fit(X_train, y_train, epochs=100, batch_size=16, validation_split=0.2, verbose=1, callbacks=[early_stopping])
+
+history = model.fit(
+    X_train, y_train, 
+    epochs=100, batch_size=16, 
+    validation_split=0.2, 
+    verbose=1, 
+    callbacks=[early_stopping, lr_scheduler]
+)
 #เอาไว้บอก
 test_loss, test_mae = model.evaluate(X_test, y_test, verbose=0)
 print(f"\nTest Loss: {test_loss:.4f} | Test MAE: {test_mae:.4f}")
