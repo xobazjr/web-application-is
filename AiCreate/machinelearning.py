@@ -5,7 +5,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.metrics import mean_absolute_error, mean_squared_error
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import GridSearchCV
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 file_path = os.path.join(BASE_DIR, "../dataset/Bangkok Land Data.csv")
@@ -40,77 +42,74 @@ with st.expander("Show Preview Dataset"):
 with st.expander("Data Visualisation"):
     st.scatter_chart(data=df, x='UTMMAP1', y='EVAPRICE', color='#1f77b4')
 
-# Train Model with error tracking
+# Train Model with error tracking and hyperparameter tuning
 @st.cache_resource
 def train_model():
-    X = df[['UTMMAP1', 'UTMMAP3', 'UTMMAP4']]  # เอา UTMMAP2 และ UTMSCALE ออก
+    # Feature selection and scaling
+    X = df[['UTMMAP1', 'UTMMAP3', 'UTMMAP4']]  # Removed UTMMAP2 and UTMSCALE
     y = df['EVAPRICE']
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-    model = RandomForestRegressor(n_estimators=200, random_state=42)  # เปลี่ยนจาก 100 เป็น 200
+
+    # Standardize the features
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
+
+    # Split data into train and test sets
+    X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2, random_state=42)
+
+    # Hyperparameter tuning with GridSearchCV
+    param_grid = {
+        'n_estimators': [100, 200, 300],
+        'max_depth': [10, 20, None],
+        'min_samples_split': [2, 5, 10],
+    }
     
-    # Error tracking lists
-    mae_list = []
-    mse_list = []
+    model = RandomForestRegressor(random_state=42)
+    grid_search = GridSearchCV(model, param_grid, cv=5, n_jobs=-1, scoring='neg_mean_absolute_error')
+    grid_search.fit(X_train, y_train)
     
-    # Train the model and track errors
-    for i in range(1, 201):  # Train with 200 iterations
-        model.set_params(n_estimators=i)
-        model.fit(X_train, y_train)
-        
-        y_pred = model.predict(X_test)
-        mae = mean_absolute_error(y_test, y_pred)
-        mse = mean_squared_error(y_test, y_pred)
-        
-        mae_list.append(mae)
-        mse_list.append(mse)
-    
-    return model, X_test, y_test, mae_list, mse_list
+    best_model = grid_search.best_estimator_
 
-model, X_test, y_test, mae_list, mse_list = train_model()
+    # Prediction and error calculation
+    y_pred = best_model.predict(X_test)
+    mae = mean_absolute_error(y_test, y_pred)
+    mse = mean_squared_error(y_test, y_pred)
+    r2 = r2_score(y_test, y_pred)
 
-# Model Performance (Show final MAE and MSE)
-y_pred = model.predict(X_test)
-mae = mean_absolute_error(y_test, y_pred)
-mse = mean_squared_error(y_test, y_pred)
+    return best_model, scaler, X_test, y_test, y_pred, mae, mse, r2, grid_search.best_params_
 
-with st.expander("Model Performance"):
-    st.write(f"**Mean Absolute Error (MAE):** {mae:,.2f} Baht")
-    st.write(f"**Mean Squared Error (MSE):** {mse:,.2f} Baht²")
-
-# Train Model Button (ฝึกโมเดลใหม่)
+# Training and displaying all model metrics
 with st.expander("Train Model"):
     if st.button("Train Model"):
-        # Train the model with the selected features
-        model, X_test, y_test, mae_list, mse_list = train_model()
-        
-        # Show model performance after training
-        y_pred = model.predict(X_test)
-        mae = mean_absolute_error(y_test, y_pred)
-        mse = mean_squared_error(y_test, y_pred)
-        
-        st.write(f"**Model has been retrained!**")
+        model, scaler, X_test, y_test, y_pred, mae, mse, r2, best_params = train_model()
+
+        # Display Model Performance
         st.write(f"**Mean Absolute Error (MAE):** {mae:,.2f} Baht")
         st.write(f"**Mean Squared Error (MSE):** {mse:,.2f} Baht²")
+        st.write(f"**R² Score:** {r2:,.2f}")
+        st.write(f"**Best Hyperparameters from Grid Search:** {best_params}")
+
+        # Plotting Feature Importance
+        feature_importance = model.feature_importances_
+        feature_names = ['UTMMAP1', 'UTMMAP3', 'UTMMAP4']
         
-        # Plot MAE and MSE over the iterations
         fig, ax = plt.subplots()
-        ax.plot(range(1, 201), mae_list, label='MAE', color='blue')
-        ax.plot(range(1, 201), mse_list, label='MSE', color='red')
-        ax.set_title("Error vs Number of Trees (Iterations)")
-        ax.set_xlabel("Number of Trees (n_estimators)")
-        ax.set_ylabel("Error")
-        ax.legend()
-        
-        # Show the plot in terminal as well
-        plt.show()  # This will display the graph in a GUI window (terminal)
-        
-        # Show the plot in Streamlit
+        ax.barh(feature_names, feature_importance)
+        ax.set_title("Feature Importance")
+        st.pyplot(fig)
+
+        # Plotting Residual Plot
+        residuals = y_test - y_pred
+        fig, ax = plt.subplots()
+        ax.scatter(y_pred, residuals)
+        ax.hlines(0, xmin=min(y_pred), xmax=max(y_pred), colors='red', linestyles='dashed')
+        ax.set_title("Residual Plot")
+        ax.set_xlabel("Predicted Prices")
+        ax.set_ylabel("Residuals")
         st.pyplot(fig)
 
 # Input Features
 with st.expander("Input Features"):
-    numeric_cols = ['UTMMAP1', 'UTMMAP3', 'UTMMAP4']  # เอา UTMMAP2 และ UTMSCALE ออก
-    
+    numeric_cols = ['UTMMAP1', 'UTMMAP3', 'UTMMAP4']  # Removed UTMMAP2 and UTMSCALE
     min_values = df[numeric_cols].min().astype(int)
     max_values = df[numeric_cols].max().astype(int)
     median_values = df[numeric_cols].median().astype(int)
@@ -123,11 +122,12 @@ with st.expander("Input Features"):
 with st.expander("Predict Price"):
     if st.button("Predict"):
         input_data = np.array([[UTMMAP1, UTMMAP3, UTMMAP4]])
-        prediction = model.predict(input_data)[0]
-    
-        # Show as Pie Chart
+        input_data_scaled = scaler.transform(input_data)
+        prediction = model.predict(input_data_scaled)[0]
+        
+        # Bar Chart for Predicted vs Median Price
         fig, ax = plt.subplots()
-        ax.pie([prediction, median_values['UTMMAP1']], labels=['Predicted Price', 'Median Price'], autopct='%1.1f%%', colors=['red', 'blue'])
+        ax.bar(['Predicted Price', 'Median Price'], [prediction, median_values['UTMMAP1']], color=['red', 'blue'])
         ax.set_title("Predicted vs Median Land Price")
         st.pyplot(fig)
     
