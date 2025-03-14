@@ -58,7 +58,7 @@ def train_model():
 
     # Hyperparameter tuning with GridSearchCV
     param_grid = {
-        'n_estimators': [100, 200, 300],
+        'n_estimators': [100, 500, 1000],  # Increased n_estimators to 1000
         'max_depth': [10, 20, None],
         'min_samples_split': [2, 5, 10],
     }
@@ -93,8 +93,15 @@ with st.expander("Train Model"):
     fig, ax = plt.subplots()
     ax.barh(feature_names, feature_importance)
     ax.set_title("Feature Importance")
+    
+    # Save the figure and display it in Streamlit
+    plot_path = 'feature_importance_plot.png'
+    fig.savefig(plot_path)
     st.pyplot(fig)
-
+    
+    # Also print the plot file path to the terminal (simulating plt.show() in terminal)
+    print(f"Feature Importance plot saved to {plot_path}")
+    
     # Plotting Residual Plot
     residuals = y_test - y_pred
     fig, ax = plt.subplots()
@@ -103,7 +110,14 @@ with st.expander("Train Model"):
     ax.set_title("Residual Plot")
     ax.set_xlabel("Predicted Prices")
     ax.set_ylabel("Residuals")
+
+    # Save the figure and display it in Streamlit
+    residual_plot_path = 'residual_plot.png'
+    fig.savefig(residual_plot_path)
     st.pyplot(fig)
+    
+    # Also print the plot file path to the terminal
+    print(f"Residual plot saved to {residual_plot_path}")
 
 # Input Features
 with st.expander("Input Features"):
@@ -117,7 +131,7 @@ with st.expander("Input Features"):
     UTMMAP4 = st.slider("หมายเลขแผ่น", min_values['UTMMAP4'], max_values['UTMMAP4'], median_values['UTMMAP4'])
 
 with st.expander("Predict Price"):
-# Automatically predict the price when input features are changed
+    # Automatically predict the price when input features are changed
     input_data = np.array([[UTMMAP1, UTMMAP3, UTMMAP4]])
     input_data_scaled = scaler.transform(input_data)
     prediction = model.predict(input_data_scaled)[0]
