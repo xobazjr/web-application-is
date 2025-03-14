@@ -86,13 +86,21 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_
 # ])
 
 #ปรับปรุงโมเดล
-model = Sequential([
-    LSTM(32, activation="relu", return_sequences=True, input_shape=(X_train.shape[1], 1)),
-    Dropout(0.2),
-    LSTM(16, activation="relu", return_sequences=False),
-    Dropout(0.2),
-    Dense(8, activation="relu"),
-    Dense(1, activation="linear")
+# model = Sequential([
+#    LSTM(32, activation="relu", return_sequences=True, input_shape=(X_train.shape[1], 1)),
+#    Dropout(0.2),
+#    LSTM(16, activation="relu", return_sequences=False),
+#    Dropout(0.2),
+#    Dense(8, activation="relu"),
+#    Dense(1, activation="linear")
+# ])
+
+#ปรับปรุงโมเดล
+model = keras.Sequential([
+    keras.layers.Dense(16, activation="relu", input_shape=(X_train.shape[1],)), 
+    keras.layers.Dropout(0.1),  
+    keras.layers.Dense(8, activation="relu"),  
+    keras.layers.Dense(1, activation="linear") 
 ])
 
 model.compile(optimizer="adam", loss="mse", metrics=["mae"])
