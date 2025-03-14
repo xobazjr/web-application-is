@@ -25,17 +25,27 @@ df = pd.read_csv(file_path, encoding="utf-8-sig")
 
 #ลบค่าที่ไม่มี
 df = df.replace("UNKNOWN_VALUE", np.nan) 
-df = df.dropna(subset=["YEAR", "MONTHLY_INCOME"]) 
+df.dropna(inplace=True)
+
 
 
 #แปลง
 df["MONTHLY_INCOME"] = pd.to_numeric(df["MONTHLY_INCOME"], errors="coerce")
 df["YEAR"] = pd.to_numeric(df["YEAR"], errors="coerce")
 
+df.dropna(inplace=True)
+
+
+
 # แปลงให้อย
-scaler = MinMaxScaler()
-df[["YEAR"]] = scaler.fit_transform(df[["YEAR"]])
-df[["MONTHLY_INCOME"]] = scaler.fit_transform(df[["MONTHLY_INCOME"]])
+
+
+scaler_year = MinMaxScaler()
+scaler_income = MinMaxScaler()
+
+df["YEAR"] = scaler_year.fit_transform(df[["YEAR"]])
+df["MONTHLY_INCOME"] = scaler_income.fit_transform(df[["MONTHLY_INCOME"]])
+
 
 
 # print(df.head()) #แสดง5ตัวแรก
@@ -76,37 +86,37 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_
 #ปรับปรุงโมเดล
 model = keras.Sequential([
     keras.layers.Dense(16, activation="relu", input_shape=(X_train.shape[1],)),  #L1 
-    keras.layers.Dropout(0.05),  # ลด5%
+    keras.layers.Dropout(0.1),  # ลด10%
     keras.layers.Dense(8, activation="relu"),  # #L2
     keras.layers.Dense(1, activation="linear") 
 ])
+
 
 
 model.compile(optimizer="adam", loss=keras.losses.MeanSquaredError(), metrics=["mae"])
 
 #ลดอาการโอเวอร์
 early_stopping = keras.callbacks.EarlyStopping(monitor="val_loss", patience=5, restore_best_weights=True)
-lr_scheduler = keras.callbacks.ReduceLROnPlateau(monitor="val_loss", factor=0.5, patience=2, min_lr=1e-5)
+history = model.fit(X_train, y_train, epochs=40, batch_size=16, validation_split=0.2, verbose=1, callbacks=[early_stopping])
 #ตีโมเดลด้วยแซ้
 # history = model.fit(X_train, y_train, epochs=100, batch_size=16, validation_split=0.2, verbose=1, callbacks=[early_stopping])
 
-history = model.fit(
-    X_train, y_train, 
-    epochs=40, batch_size=16, 
-    validation_split=0.2, 
-    verbose=1, 
-    callbacks=[early_stopping, lr_scheduler]
-)
+
 #เอาไว้บอก
 test_loss, test_mae = model.evaluate(X_test, y_test, verbose=0)
 print(f"\nTest Loss: {test_loss:.4f} | Test MAE: {test_mae:.4f}")
 
 
 #8บันทึกข้อมูล
-model.save("trained_model.h5")
+model.save("trained_model.keras")
 
-with open("scaler.pkl", "wb") as f:
-    pickle.dump(scaler, f)
+
+with open("scaler_year.pkl", "wb") as f:
+    pickle.dump(scaler_year, f)
+
+with open("scaler_income.pkl", "wb") as f:
+    pickle.dump(scaler_income, f)
+
 
 # # พล็อตกราฟ
 # plt.figure(figsize=(10, 5))#ขนาด
@@ -153,12 +163,34 @@ plt.show()
 
 
 
+# โหลด Scaler
+
+with open("scaler_year.pkl", "rb") as f:
+    scaler_year = pickle.load(f)
+
+with open("scaler_income.pkl", "rb") as f:
+    scaler_income = pickle.load(f)
+
 #ทดสอบการเดา
-future_years = np.array([[2025], [2030]]) 
-future_years_scaled = scaler.transform(future_years)  
+future_years = np.array([[2015], [2070]]) 
+future_years_df = pd.DataFrame(future_years, columns=["YEAR"])
+future_years_scaled = scaler_year.transform(future_years_df)
+
 predicted_income = model.predict(future_years_scaled)
-predicted_income = scaler.inverse_transform(predicted_income)  # แปลงกลับเป็นหน่วยเดิม
+predicted_income = scaler_income.inverse_transform(predicted_income)  # แปลงกลับ
 
+print(f"คาดการณ์รายได้ในปี 2015: {predicted_income[0][0]:,.2f} บาท")
+print(f"คาดการณ์รายได้ในปี 2070: {predicted_income[1][0]:,.2f} บาท")
 
-print(f"คาดการณ์รายได้ในปี 2025: {predicted_income[0][0]:,.2f} บาท")
-print(f"คาดการณ์รายได้ในปี 2030: {predicted_income[1][0]:,.2f} บาท")
+df["YEAR"] = scaler_year.inverse_transform(df[["YEAR"]])  
+df["MONTHLY_INCOME"] = scaler_income.inverse_transform(df[["MONTHLY_INCOME"]])
+
+plt.figure(figsize=(12, 6))
+plt.bar(df["YEAR"], df["MONTHLY_INCOME"], color="blue", alpha=0.7)
+plt.xlabel("ปี")
+plt.ylabel("รายได้เฉลี่ย (บาท)")
+plt.title("รายได้เฉลี่ยของครัวเรือนในแต่ละปี")
+plt.xticks(rotation=45)
+plt.grid(axis="y")
+
+plt.show()
