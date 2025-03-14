@@ -77,8 +77,8 @@ def train_model():
 
     return best_model, scaler, X_test, y_test, y_pred, mae, mse, r2, grid_search.best_params_
 
+# Automatically train the model when the page is loaded
 with st.expander("Train Model"):
-    # Automatically train model when page is loaded
     model, scaler, X_test, y_test, y_pred, mae, mse, r2, best_params = train_model()
 
     # Display Model Performance
@@ -116,17 +116,16 @@ with st.expander("Input Features"):
     UTMMAP3 = st.slider("หมายเลขระวาง UTM", min_values['UTMMAP3'], max_values['UTMMAP3'], median_values['UTMMAP3'])
     UTMMAP4 = st.slider("หมายเลขแผ่น", min_values['UTMMAP4'], max_values['UTMMAP4'], median_values['UTMMAP4'])
 
-# Predict Price
 with st.expander("Predict Price"):
-    if st.button("Predict"):
-        input_data = np.array([[UTMMAP1, UTMMAP3, UTMMAP4]])
-        input_data_scaled = scaler.transform(input_data)
-        prediction = model.predict(input_data_scaled)[0]
-        
-        # Bar Chart for Predicted vs Median Price
-        fig, ax = plt.subplots()
-        ax.bar(['Predicted Price', 'Median Price'], [prediction, median_values['UTMMAP1']], color=['red', 'blue'])
-        ax.set_title("Predicted vs Median Land Price")
-        st.pyplot(fig)
-    
-        st.success(f"**Estimated Land Price:** {prediction:,.2f} Baht per sq. wah")
+# Automatically predict the price when input features are changed
+    input_data = np.array([[UTMMAP1, UTMMAP3, UTMMAP4]])
+    input_data_scaled = scaler.transform(input_data)
+    prediction = model.predict(input_data_scaled)[0]
+
+    # Bar Chart for Predicted vs Median Price
+    fig, ax = plt.subplots()
+    ax.bar(['Predicted Price', 'Median Price'], [prediction, median_values['UTMMAP1']], color=['red', 'blue'])
+    ax.set_title("Predicted vs Median Land Price")
+    st.pyplot(fig)
+
+    st.success(f"**Estimated Land Price:** {prediction:,.2f} Baht per sq. wah")
