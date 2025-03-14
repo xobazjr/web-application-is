@@ -51,16 +51,25 @@ y = df["MONTHLY_INCOME"].values
 
 #แบ่งข้อมูลไว้เทรนกับไว้เทส
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-#ทำโมเดลขำๆ
+#ทำโมเดลขำๆ อันนี้ใหญ่ไปต้องลด
+# model = keras.Sequential([
+#     keras.layers.Dense(16, activation="relu", input_shape=(X_train.shape[1],)),  #L1
+#     keras.layers.Dense(8, activation="relu"),  #L2
+#     keras.layers.Dense(1, activation="linear")  
+# ])
+# จากอันบนนี่เลยคับขอเสนอลดขนาดลงมา
 model = keras.Sequential([
-    keras.layers.Dense(16, activation="relu", input_shape=(X_train.shape[1],)),  #L1
-    keras.layers.Dense(8, activation="relu"),  #L2
-    keras.layers.Dense(1, activation="linear")  
+    keras.layers.Dense(8, activation="relu", input_shape=(X_train.shape[1],)),  # l1
+    keras.layers.Dropout(0.2),  # ลด 20%
+    keras.layers.Dense(1, activation="linear") 
 ])
 
 model.compile(optimizer="adam", loss="mse", metrics=["mae"])
+#ลดอาการโอเวอร์
+early_stopping = keras.callbacks.EarlyStopping(monitor="val_loss", patience=10, restore_best_weights=True)
+
 #ตีโมเดลด้วยแซ้
-history = model.fit(X_train, y_train, epochs=100, batch_size=16, validation_split=0.2, verbose=1)
+history = model.fit(X_train, y_train, epochs=100, batch_size=16, validation_split=0.2, verbose=1, callbacks=[early_stopping])
 #เอาไว้บอก
 test_loss, test_mae = model.evaluate(X_test, y_test, verbose=0)
 print(f"\nTest Loss: {test_loss:.4f} | Test MAE: {test_mae:.4f}")
@@ -107,7 +116,7 @@ plt.subplot(1, 2, 2)
 plt.plot(history.history["mae"], label="MAE ของชุดข้อมูลฝึก", color="blue")
 plt.plot(history.history["val_mae"], label="MAE ของชุดข้อมูลตรวจสอบความถูกต้อง", color="red")
 plt.xlabel("จำนวนรอบการตีด้วยแซ่ อีดอก(Epochs)")
-plt.ylabel("ค่าการสูญเสีย (MAE)")
+plt.ylabel("ค่าข้อผิดพลาดเฉลี่ย (MAE)")
 plt.title("กราฟข้อผิดพลาดนะเคิฟ")
 plt.legend()
 
