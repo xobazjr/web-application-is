@@ -39,11 +39,7 @@ with st.expander("Show Preview Dataset"):
 
 # Data Visualisation
 with st.expander("Data Visualisation"):
-    fig, ax = plt.subplots(figsize=(10, 5))
-    sns.histplot(df['EVAPRICE'], bins=30, kde=True, color='blue', ax=ax)
-    plt.xlabel("Estimated Land Price (Baht per sq. wah)")
-    plt.ylabel("Frequency")
-    st.pyplot(fig)
+    st.scatter_chart(data=df, x='UTMMAP1', y='EVAPRICE', color='#1f77b4')
 
 # Input Features
 with st.expander("Input Features"):
