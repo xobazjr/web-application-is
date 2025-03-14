@@ -2,29 +2,20 @@ import streamlit as st
 import pandas as pd
 import os
 import numpy as np
-import joblib
 import matplotlib.pyplot as plt
+import seaborn as sns
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
-
-def show():
-    st.title("🤖 Machine Learning Page")
-    st.write("นี่คือหน้าสำหรับพยากรณ์ราคาที่ดิน")
-    
-
+from sklearn.metrics import mean_absolute_error, mean_squared_error
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 file_path = os.path.join(BASE_DIR, "../dataset/Bangkok Land Data.csv")
 
 # Load dataset
 @st.cache_data
-
-
-
 def load_data():
-   
-    df = pd.read_csv(file_path, encoding="utf-8-sig")  # โหลดข้อมูล
-    return df  # ส่ง DataFrame กลับไปให้ใช้งาน
+    df = pd.read_csv(file_path, encoding="utf-8-sig")
+    return df  
 
 df = load_data()
 
@@ -40,8 +31,7 @@ df.rename(columns={
 }, inplace=True)
 
 st.title('🤖 Machine Learning')
-
-st.info('This is bangkok land data machine learing')
+st.info('This is a machine learning model to estimate land prices in Bangkok.')
 
 # Show Preview Dataset
 with st.expander("Show Preview Dataset"):
@@ -49,30 +39,56 @@ with st.expander("Show Preview Dataset"):
 
 # Data Visualisation
 with st.expander("Data Visualisation"):
-    st.scatter_chart(data=df, x='UTMMAP1', y='EVAPRICE', color='#1f77b4')
+    fig, ax = plt.subplots(figsize=(10, 5))
+    sns.histplot(df['EVAPRICE'], bins=30, kde=True, color='blue', ax=ax)
+    plt.xlabel("Estimated Land Price (Baht per sq. wah)")
+    plt.ylabel("Frequency")
+    st.pyplot(fig)
 
 # Input Features
 with st.expander("Input Features"):
-    UTMMAP1 = st.slider("หมายเลขระหว่างภูมิประเทศ", min_value=int(df['UTMMAP1'].min()), max_value=int(df['UTMMAP1'].max()), value=int(df['UTMMAP1'].median()))
-    UTMMAP2 = st.slider("หมายเลขแผ่นระวางภูมิประเทศ", min_value=int(df['UTMMAP2'].min()), max_value=int(df['UTMMAP2'].max()), value=int(df['UTMMAP2'].median()))
-    UTMMAP3 = st.slider("หมายเลขระวาง UTM", min_value=int(df['UTMMAP3'].min()), max_value=int(df['UTMMAP3'].max()), value=int(df['UTMMAP3'].median()))
-    UTMMAP4 = st.slider("หมายเลขแผ่น", min_value=int(df['UTMMAP4'].min()), max_value=int(df['UTMMAP4'].max()), value=int(df['UTMMAP4'].median()))
-    UTMSCALE = st.slider("มาตราส่วนระวางแผนที่", min_value=int(df['UTMSCALE'].min()), max_value=int(df['UTMSCALE'].max()), value=int(df['UTMSCALE'].median()))
+    numeric_cols = ['UTMMAP1', 'UTMMAP3', 'UTMMAP4']  # เอา UTMMAP2 และ UTMSCALE ออก
+    
+    min_values = df[numeric_cols].min().astype(int)
+    max_values = df[numeric_cols].max().astype(int)
+    median_values = df[numeric_cols].median().astype(int)
 
-# Data Preparation
-with st.expander("Data Preparation"):
-    @st.cache_resource
-    def train_model():
-        X = df[['UTMMAP1', 'UTMMAP2', 'UTMMAP3', 'UTMMAP4', 'UTMSCALE']]
-        y = df['EVAPRICE']
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-        model = RandomForestRegressor(n_estimators=100, random_state=42)
-        model.fit(X_train, y_train)
-        return model
+    UTMMAP1 = st.slider("หมายเลขระหว่างภูมิประเทศ", min_values['UTMMAP1'], max_values['UTMMAP1'], median_values['UTMMAP1'])
+    UTMMAP3 = st.slider("หมายเลขระวาง UTM", min_values['UTMMAP3'], max_values['UTMMAP3'], median_values['UTMMAP3'])
+    UTMMAP4 = st.slider("หมายเลขแผ่น", min_values['UTMMAP4'], max_values['UTMMAP4'], median_values['UTMMAP4'])
 
-    model = train_model()
+# Train Model
+@st.cache_resource
+def train_model():
+    X = df[['UTMMAP1', 'UTMMAP3', 'UTMMAP4']]  # เอา UTMMAP2 และ UTMSCALE ออก
+    y = df['EVAPRICE']
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    model = RandomForestRegressor(n_estimators=100, random_state=42)
+    model.fit(X_train, y_train)
+    return model, X_test, y_test
 
-    if st.button("Predict Price"):
-        input_data = np.array([[UTMMAP1, UTMMAP2, UTMMAP3, UTMMAP4, UTMSCALE]])
+model, X_test, y_test = train_model()
+
+y_pred = model.predict(X_test)
+mae = mean_absolute_error(y_test, y_pred)
+mse = mean_squared_error(y_test, y_pred)
+
+# Model Performance
+with st.expander("Model Performance"):
+    st.write(f"**Mean Absolute Error (MAE):** {mae:,.2f} Baht")
+    st.write(f"**Mean Squared Error (MSE):** {mse:,.2f} Baht²")
+
+# Predict Price
+
+with st.expander("Predict Price"):
+    if st.button("Predict"):
+        input_data = np.array([[UTMMAP1, UTMMAP3, UTMMAP4]])
         prediction = model.predict(input_data)[0]
-        st.success(f"Estimated Land Price: {prediction:,.2f} Baht per sq. wah")
+    
+        # Show as Pie Chart
+        fig, ax = plt.subplots()
+        ax.pie([prediction, median_values['UTMMAP1']], labels=['Predicted Price', 'Median Price'], autopct='%1.1f%%', colors=['red', 'blue'])
+        ax.set_title("Predicted vs Median Land Price")
+        st.pyplot(fig)
+    
+        st.success(f"**Estimated Land Price:** {prediction:,.2f} Baht per sq. wah")
