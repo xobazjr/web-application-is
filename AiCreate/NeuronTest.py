@@ -15,7 +15,8 @@ import matplotlib.pyplot as plt
 import matplotlib
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler
-from sklearn.model_selection import train_test_split
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import LSTM, Dense, Dropout
 import pickle
 
 matplotlib.rc("font", family="Tahoma") #ภาษาไทยไม่รองรับจึงต้องใส่
@@ -40,7 +41,8 @@ df.dropna(inplace=True)
 # แปลงให้อย
 
 
-scaler_year = MinMaxScaler()
+scaler_year = MinMaxScaler(feature_range=(0, 1))
+
 scaler_income = MinMaxScaler()
 
 df["YEAR"] = scaler_year.fit_transform(df[["YEAR"]])
@@ -84,20 +86,20 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_
 # ])
 
 #ปรับปรุงโมเดล
-model = keras.Sequential([
-    keras.layers.Dense(16, activation="relu", input_shape=(X_train.shape[1],)),  #L1 
-    keras.layers.Dropout(0.1),  # ลด10%
-    keras.layers.Dense(8, activation="relu"),  # #L2
-    keras.layers.Dense(1, activation="linear") 
+model = Sequential([
+    LSTM(32, activation="relu", return_sequences=True, input_shape=(X_train.shape[1], 1)),
+    Dropout(0.2),
+    LSTM(16, activation="relu", return_sequences=False),
+    Dropout(0.2),
+    Dense(8, activation="relu"),
+    Dense(1, activation="linear")
 ])
 
-
-
-model.compile(optimizer="adam", loss=keras.losses.MeanSquaredError(), metrics=["mae"])
+model.compile(optimizer="adam", loss="mse", metrics=["mae"])
 
 #ลดอาการโอเวอร์
 early_stopping = keras.callbacks.EarlyStopping(monitor="val_loss", patience=5, restore_best_weights=True)
-history = model.fit(X_train, y_train, epochs=40, batch_size=16, validation_split=0.2, verbose=1, callbacks=[early_stopping])
+history = model.fit(X_train, y_train, epochs=50, batch_size=16, validation_split=0.2, verbose=1, callbacks=[early_stopping])
 #ตีโมเดลด้วยแซ้
 # history = model.fit(X_train, y_train, epochs=100, batch_size=16, validation_split=0.2, verbose=1, callbacks=[early_stopping])
 
