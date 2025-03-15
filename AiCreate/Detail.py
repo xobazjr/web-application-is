@@ -2,6 +2,9 @@ import streamlit as st
 
 def show():
     st.title('🧑‍💻 การพัฒนาโมเดล Machine Learning และ Neural Network')
+
+    st.markdown('<hr style="border: 1px solid #333;">', unsafe_allow_html=True)
+
     
     with st.expander("ขั้นตอนการพัฒนาโมเดล Machine Learning และ Neural Network"):
         st.markdown("""

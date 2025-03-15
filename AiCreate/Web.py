@@ -1,76 +1,82 @@
 import streamlit as st
-import pandas as pd
+import cv2
 import numpy as np
-import tensorflow as tf
-from tensorflow import keras
-import matplotlib.pyplot as plt
-import pickle
-from sklearn.preprocessing import MinMaxScaler
-import matplotlib
+from tensorflow.keras.models import load_model
+from tensorflow.keras.preprocessing import image
+import time
 
 def show():
 
-    matplotlib.rc("font", family="Tahoma")  # แก้ปัญหาฟอนต์ภาษาไทย
-
-    # 🔹 โหลดโมเดลและ Scaler ที่ฝึกไว้
-    try:
-        model = keras.models.load_model("trained_model.keras")  # เปลี่ยนเป็นไฟล์ที่ถูกต้อง
-        with open("scaler_year.pkl", "rb") as f:
-            scaler_year = pickle.load(f)
-        with open("scaler_income.pkl", "rb") as f:
-            scaler_income = pickle.load(f)
-    except (FileNotFoundError, AttributeError, IndexError) as e:
-        st.error(f"🚨 เกิดข้อผิดพลาดขณะโหลดโมเดล: {str(e)} กรุณาตรวจสอบไฟล์โมเดลและ Scaler!")
-        st.button("🔄 กลับไปหน้าเดิม", on_click=st.rerun)
+    # โหลดโมเดลที่เทรนมา
+    MODEL_PATH = "NNmodel.h5"
+    if not MODEL_PATH or not st.cache_resource(lambda: load_model(MODEL_PATH)):
+        st.error("ไม่พบไฟล์โมเดล กรุณาตรวจสอบ!")
         st.stop()
 
-    # 🔹 ตั้งค่า UI ของเว็บ
-    st.title("📊 พยากรณ์รายได้เฉลี่ยของครัวเรือนไทย")
-    st.write("กรอกปีที่ต้องการพยากรณ์ c!")
+    model = load_model(MODEL_PATH)
+    st.success("โหลดโมเดลสำเร็จ! ฟาดแซ้โดยพริด๊ม")
 
-    # 🔹 รับค่าปีที่ผู้ใช้ต้องการพยากรณ์
-    selected_year = st.number_input("📅 กรุณากรอกปีที่ต้องการพยากรณ์:", min_value=2025, max_value=2100, step=1, value=2030)
+    # Map label index เป็นชื่อคลาส
+    class_labels = {0: "Angry", 1: "Happy", 2: "Normal", 3: "Sleep"}
 
-    # 🔹 ตรวจสอบว่า Scaler ใช้งานได้หรือไม่
-    try:
-        future_year_df = pd.DataFrame([[selected_year]], columns=["YEAR"])  # แปลงเป็น DataFrame ก่อน
-        future_year_scaled = scaler_year.transform(future_year_df)  # แปลงค่าให้ตรงกับโมเดล
-    except ValueError:
-        st.error("🚨 มีข้อผิดพลาดในการแปลงค่าปี กรุณาตรวจสอบ `scaler_year.pkl`")
-        st.button("🔄 กลับไปหน้าเดิม", on_click=st.rerun)
+    # ฟังก์ชันประมวลผลและทำนายอารมณ์จากภาพ
+    def predict_emotion(frame):
+        face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(50, 50))
+
+        if len(faces) == 0:
+            return None, None
+
+        for (x, y, w, h) in faces:
+            face = frame[y:y+h, x:x+w]
+            face = cv2.resize(face, (200, 200))
+            face_array = image.img_to_array(face) / 255.0
+            face_array = np.expand_dims(face_array, axis=0)
+
+            prediction = model.predict(face_array)
+            predicted_class = np.argmax(prediction)
+            predicted_label = class_labels[predicted_class]
+
+            return predicted_label, (x, y, w, h)
+
+    # ส่วน UI ของ Streamlit
+    st.title("ตรวจจับอารมณ์จากใบหน้า")
+
+    # เปิดกล้อง
+    video_capture = cv2.VideoCapture(0)
+
+    if not video_capture.isOpened():
+        st.error("ไม่สามารถเปิดกล้องได้! ตรวจสอบการเชื่อมต่อ")
         st.stop()
 
-    # 🔹 พยากรณ์รายได้
-    predicted_income_scaled = model.predict(future_year_scaled)
-    predicted_income = scaler_income.inverse_transform(predicted_income_scaled)[0][0]  # แปลงกลับเป็นค่าปกติ
+    frame_placeholder = st.empty()
+    prediction_placeholder = st.empty()
 
-    st.subheader(f"📌 คาดการณ์รายได้ในปี {selected_year}: {predicted_income:,.2f} บาท")
+    st.write("กรุณาให้ใบหน้าอยู่กลางกล้อง แล้วดูผลการทำนาย!")
 
-    # 🔹 แสดงกราฟแนวโน้มรายได้
-    st.subheader("📈 กราฟแนวโน้มรายได้")
-    future_years = np.arange(2025, selected_year + 1).reshape(-1, 1)  # สร้างอาร์เรย์ของปี
-    future_years_df = pd.DataFrame(future_years, columns=["YEAR"])  # แปลงเป็น DataFrame
-    future_years_scaled = scaler_year.transform(future_years_df)  # ทำการ Normalize
+    # วนลูปอ่านเฟรมจากกล้อง
+    while True:
+        ret, frame = video_capture.read()
+        if not ret:
+            st.error("ไม่สามารถอ่านข้อมูลจากกล้องได้!")
+            break
 
-    predicted_incomes_scaled = model.predict(future_years_scaled)  # ทำนายรายได้
-    predicted_incomes = scaler_income.inverse_transform(predicted_incomes_scaled)  # แปลงกลับเป็นค่าปกติ
+        frame = cv2.flip(frame, 1)
+        emotion, face_coords = predict_emotion(frame)
 
-    # 🔹 พล็อตกราฟเส้น
-    fig, ax = plt.subplots(figsize=(8, 4))
-    ax.plot(future_years, predicted_incomes, marker='o', linestyle='-', color='b', label='คาดการณ์รายได้')
-    ax.set_xlabel("ปี")
-    ax.set_ylabel("รายได้เฉลี่ย (บาท)")
-    ax.set_title("แนวโน้มรายได้ของครัวเรือนในไทย")
-    ax.legend()
-    ax.grid(True)
-    st.pyplot(fig)
+        if face_coords:
+            x, y, w, h = face_coords
+            cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
+            cv2.putText(frame, emotion, (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
 
-    # 🔹 พล็อตกราฟแท่ง
-    st.subheader("📊 กราฟแท่งรายได้ในแต่ละปี")
-    fig, ax = plt.subplots(figsize=(8, 4))
-    ax.bar(future_years.flatten(), predicted_incomes.flatten(), color='orange', alpha=0.7)
-    ax.set_xlabel("ปี")
-    ax.set_ylabel("รายได้เฉลี่ย (บาท)")
-    ax.set_title("พยากรณ์รายได้ของครัวเรือน")
-    ax.grid(axis="y", linestyle="--", alpha=0.7)
-    st.pyplot(fig)
+        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        frame_placeholder.image(frame_rgb, channels="RGB")
+
+        if emotion:
+            prediction_placeholder.write(f"### อารมณ์ที่ตรวจพบ: **{emotion}**")
+
+        time.sleep(0)  # ลดความเร็วในการแสดงผล
+
+    video_capture.release()
+    cv2.destroyAllWindows()

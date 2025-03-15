@@ -36,6 +36,8 @@ def show():
     st.title('🤖 Machine Learning')
     st.info('This is a machine learning model to estimate land prices in Bangkok.')
 
+    st.markdown('<hr style="border: 1px solid #333;">', unsafe_allow_html=True)
+
     # Show Preview Dataset
     with st.expander("Show Preview Dataset"):
         st.write(df.head())
