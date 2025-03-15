@@ -1,16 +1,17 @@
 import streamlit as st
 import av
+import cv2
 import numpy as np
 from tensorflow.keras.models import load_model
 from tensorflow.keras.preprocessing import image
 from streamlit_webrtc import webrtc_streamer, VideoTransformerBase
 
 def show():
-    # โหลดโมเดล
-    MODEL_PATH = "assets/NNmodel.h5"
 
+    # โหลดโมเดลเพียงครั้งเดียว
     @st.cache_resource
     def load_emotion_model():
+        MODEL_PATH = "assets/NNmodel.h5"
         try:
             model = load_model(MODEL_PATH)
             st.success("✅ โหลดโมเดลสำเร็จ!")
@@ -21,12 +22,20 @@ def show():
 
     model = load_emotion_model()
 
+    # โหลด Haar Cascade เพียงครั้งเดียว
+    @st.cache_resource
+    def load_cascade():
+        cascade_path = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
+        return cv2.CascadeClassifier(cascade_path)
+
+    face_cascade = load_cascade()
+
     # คลาสสำหรับประมวลผลวิดีโอจากกล้อง
     class EmotionVideoTransformer(VideoTransformerBase):
         def __init__(self):
             self.class_labels = {0: "Angry", 1: "Happy", 2: "Normal", 3: "Sleep"}
             self.model = model
-            self.face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+            self.face_cascade = face_cascade
 
         def predict_emotion(self, face):
             face = cv2.resize(face, (200, 200))
@@ -44,11 +53,11 @@ def show():
 
             for (x, y, w, h) in faces:
                 face = img[y:y+h, x:x+w]
-                emotion = self.predict_emotion(face)
-                
-                # วาดกรอบและแสดงผลอารมณ์
-                cv2.rectangle(img, (x, y), (x+w, y+h), (0, 255, 0), 2)
-                cv2.putText(img, emotion, (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
+                if self.model:
+                    emotion = self.predict_emotion(face)
+                    # วาดกรอบและแสดงผลอารมณ์
+                    cv2.rectangle(img, (x, y), (x+w, y+h), (0, 255, 0), 2)
+                    cv2.putText(img, emotion, (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
 
             return av.VideoFrame.from_ndarray(img, format="bgr24")
 

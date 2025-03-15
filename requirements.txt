@@ -7,3 +7,4 @@ opencv-python-headless
 tensorflow
 av
 streamlit-webrtc
+opencv-python
