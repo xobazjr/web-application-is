@@ -8,7 +8,7 @@ import time
 def show():
 
     # โหลดโมเดลที่เทรนมา
-    MODEL_PATH = "NNmodel.h5"
+    MODEL_PATH = "assets/NNmodel.h5"
     if not MODEL_PATH or not st.cache_resource(lambda: load_model(MODEL_PATH)):
         st.error("ไม่พบไฟล์โมเดล กรุณาตรวจสอบ!")
         st.stop()
