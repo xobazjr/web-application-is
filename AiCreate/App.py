@@ -8,7 +8,7 @@ import machinelearning
 
 import streamlit as st
 
-st.sidebar.title("🔗 Navigation")
+st.sidebar.title("Navigation")
 page = st.sidebar.selectbox("เลือกหน้า", ["Home", "Machine Learning"])
 
 if page == "Home":
