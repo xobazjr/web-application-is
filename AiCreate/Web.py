@@ -5,16 +5,15 @@ import numpy as np
 from tensorflow.keras.models import load_model
 from tensorflow.keras.preprocessing import image
 from streamlit_webrtc import webrtc_streamer, VideoTransformerBase
+import os
 
 def show():
-
     # โหลดโมเดลเพียงครั้งเดียว
     @st.cache_resource
     def load_emotion_model():
         MODEL_PATH = "assets/NNmodel.h5"
         try:
             # ตรวจสอบว่าโมเดลมีอยู่จริงในตำแหน่งนั้น
-            import os
             if not os.path.exists(MODEL_PATH):
                 raise FileNotFoundError(f"❌ ไม่พบไฟล์โมเดลที่ {MODEL_PATH}")
             model = load_model(MODEL_PATH)
