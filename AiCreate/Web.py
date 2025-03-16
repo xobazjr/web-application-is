@@ -1,5 +1,14 @@
 import streamlit as st
+import av
+import cv2
+import numpy as np
+import os
+import gdown
+from tensorflow.keras.models import load_model
+from tensorflow.keras.preprocessing import image
+from streamlit_webrtc import webrtc_streamer, VideoTransformerBase, RTCConfiguration
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 def show(video_feed_url):
     st.title("📷 ตรวจจับอารมณ์แบบเรียลไทม์")
@@ -14,6 +23,13 @@ def show():
     GDRIVE_FILE_ID = "1d2UdtGOP-R0Hdg3vatxTWVH2tNyYtfo9"
     MODEL_PATH = "NNmodel.h5"
 
+=======
+def show():
+    # 🔹 ตั้งค่า Google Drive File ID ของโมเดล
+    GDRIVE_FILE_ID = "1d2UdtGOP-R0Hdg3vatxTWVH2tNyYtfo9"
+    MODEL_PATH = "NNmodel.h5"
+
+>>>>>>> parent of d1bccf4 (Update camera)
     # 🔹 ถ้าไม่มีไฟล์โมเดล ให้ดาวน์โหลดจาก Google Drive
     if not os.path.exists(MODEL_PATH):
         st.info("กำลังดาวน์โหลดโมเดลจาก Google Drive...")
@@ -60,5 +76,9 @@ def show():
     st.title("ตรวจจับอารมณ์จากใบหน้าแบบเรียลไทม์")
     st.write("เปิดกล้องและให้ใบหน้าอยู่กลางเฟรมเพื่อดูผลลัพธ์!")
 
+<<<<<<< HEAD
     webrtc_streamer(key="emotion-detection", video_transformer_factory=EmotionDetector, rtc_configuration=rtc_config)
 >>>>>>> parent of 96cd212 (Revert "Update Web.py")
+=======
+    webrtc_streamer(key="emotion-detection", video_transformer_factory=EmotionDetector, rtc_configuration=rtc_config)
+>>>>>>> parent of d1bccf4 (Update camera)

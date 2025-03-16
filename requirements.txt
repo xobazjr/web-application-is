@@ -8,6 +8,3 @@ tensorflow
 av
 streamlit-webrtc
 gdown
-cv
-flask
-opencv-python
