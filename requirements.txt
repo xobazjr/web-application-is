@@ -3,10 +3,11 @@ pandas
 numpy
 matplotlib
 scikit-learn
-opencv-python-headless
+opencv-python-headless==4.5.5.64 
 tensorflow
 av
 streamlit-webrtc
-opencv-python
-opencv-contrib-python
 importlib-metadata
+libsm6
+libxrender1
+libxext6
