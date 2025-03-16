@@ -11,7 +11,7 @@ def show():
     # โหลดโมเดลเพียงครั้งเดียว
     @st.cache_resource
     def load_emotion_model():
-        MODEL_PATH = "assets/NNmodel.h5"
+        MODEL_PATH = "NNmodel.h5"
         try:
             # ตรวจสอบว่าโมเดลมีอยู่จริงในตำแหน่งนั้น
             if not os.path.exists(MODEL_PATH):
@@ -57,8 +57,14 @@ def show():
 
         def transform(self, frame):
             img = frame.to_ndarray(format="bgr24")  # แปลงเป็น BGR สำหรับ OpenCV
+            if img is None:
+                st.error("❌ ไม่สามารถรับข้อมูลจากกล้องได้")
+                return frame
             gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
             faces = self.face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(50, 50))
+
+            if len(faces) == 0:
+                st.write("⚠️ ไม่พบใบหน้าในภาพ")
 
             for (x, y, w, h) in faces:
                 face = img[y:y+h, x:x+w]
