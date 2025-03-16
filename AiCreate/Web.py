@@ -20,22 +20,18 @@ def show():
             st.error(f"❌ ไม่สามารถโหลดโมเดลได้: {e}")
             return None
 
-    model = load_emotion_model()
-
     # โหลด Haar Cascade เพียงครั้งเดียว
     @st.cache_resource
     def load_cascade():
         cascade_path = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
         return cv2.CascadeClassifier(cascade_path)
 
-    face_cascade = load_cascade()
-
     # คลาสสำหรับประมวลผลวิดีโอจากกล้อง
     class EmotionVideoTransformer(VideoTransformerBase):
         def __init__(self):
             self.class_labels = {0: "Angry", 1: "Happy", 2: "Normal", 3: "Sleep"}
-            self.model = model
-            self.face_cascade = face_cascade
+            self.model = load_emotion_model()  # โหลดโมเดล
+            self.face_cascade = load_cascade()  # โหลด Haar Cascade
 
         def predict_emotion(self, face):
             face = cv2.resize(face, (200, 200))
@@ -47,7 +43,7 @@ def show():
             return self.class_labels[predicted_class]
 
         def transform(self, frame):
-            img = frame.to_ndarray(format="bgr24")
+            img = frame.to_ndarray(format="bgr24")  # แปลงเป็น BGR สำหรับ OpenCV
             gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
             faces = self.face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(50, 50))
 
