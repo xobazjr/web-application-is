@@ -1,84 +1,82 @@
 import streamlit as st
-import av
 import cv2
 import numpy as np
 from tensorflow.keras.models import load_model
 from tensorflow.keras.preprocessing import image
-from streamlit_webrtc import webrtc_streamer, VideoTransformerBase
-import os
+import time
 
 def show():
-    # โหลดโมเดลเพียงครั้งเดียว
-    @st.cache_resource
-    def load_emotion_model():
-        MODEL_PATH = "NNmodel.h5"
-        try:
-            # ตรวจสอบว่าโมเดลมีอยู่จริงในตำแหน่งนั้น
-            if not os.path.exists(MODEL_PATH):
-                raise FileNotFoundError(f"❌ ไม่พบไฟล์โมเดลที่ {MODEL_PATH}")
-            model = load_model(MODEL_PATH)
-            st.success("✅ โหลดโมเดลสำเร็จ!")
-            return model
-        except FileNotFoundError as e:
-            st.error(str(e))
-            return None
-        except Exception as e:
-            st.error(f"❌ ไม่สามารถโหลดโมเดลได้: {e}")
-            return None
 
-    # โหลด Haar Cascade เพียงครั้งเดียว
-    @st.cache_resource
-    def load_cascade():
-        try:
-            cascade_path = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
-            # ตรวจสอบว่าไฟล์ Haar Cascade มีอยู่จริง
-            if not os.path.exists(cascade_path):
-                raise FileNotFoundError(f"❌ ไม่พบไฟล์ Haar Cascade ที่ {cascade_path}")
-            return cv2.CascadeClassifier(cascade_path)
-        except Exception as e:
-            st.error(f"❌ ไม่สามารถโหลด Haar Cascade: {e}")
-            return None
+    # โหลดโมเดลที่เทรนมา
+    MODEL_PATH = "/Users/xobazjr/Documents/GitHub/web-application-is/assets/NNmodel.h5"
+    if not MODEL_PATH or not st.cache_resource(lambda: load_model(MODEL_PATH)):
+        st.error("ไม่พบไฟล์โมเดล กรุณาตรวจสอบ!")
+        st.stop()
 
-    # คลาสสำหรับประมวลผลวิดีโอจากกล้อง
-    class EmotionVideoTransformer(VideoTransformerBase):
-        def __init__(self):
-            self.class_labels = {0: "Angry", 1: "Happy", 2: "Normal", 3: "Sleep"}
-            self.model = load_emotion_model()  # โหลดโมเดล
-            self.face_cascade = load_cascade()  # โหลด Haar Cascade
+    model = load_model(MODEL_PATH)
+    st.success("โหลดโมเดลสำเร็จ! ฟาดแซ้โดยพริด๊ม")
 
-        def predict_emotion(self, face):
+    # Map label index เป็นชื่อคลาส
+    class_labels = {0: "Angry", 1: "Happy", 2: "Normal", 3: "Sleep"}
+
+    # ฟังก์ชันประมวลผลและทำนายอารมณ์จากภาพ
+    def predict_emotion(frame):
+        face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(50, 50))
+
+        if len(faces) == 0:
+            return None, None
+
+        for (x, y, w, h) in faces:
+            face = frame[y:y+h, x:x+w]
             face = cv2.resize(face, (200, 200))
             face_array = image.img_to_array(face) / 255.0
             face_array = np.expand_dims(face_array, axis=0)
 
-            prediction = self.model.predict(face_array)
+            prediction = model.predict(face_array)
             predicted_class = np.argmax(prediction)
-            return self.class_labels[predicted_class]
+            predicted_label = class_labels[predicted_class]
 
-        def transform(self, frame):
-            img = frame.to_ndarray(format="bgr24")  # แปลงเป็น BGR สำหรับ OpenCV
-            if img is None:
-                st.error("❌ ไม่สามารถรับข้อมูลจากกล้องได้")
-                return frame
-            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-            faces = self.face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(50, 50))
+            return predicted_label, (x, y, w, h)
 
-            if len(faces) == 0:
-                st.write("⚠️ ไม่พบใบหน้าในภาพ")
+    # ส่วน UI ของ Streamlit
+    st.title("ตรวจจับอารมณ์จากใบหน้า")
 
-            for (x, y, w, h) in faces:
-                face = img[y:y+h, x:x+w]
-                if self.model:
-                    emotion = self.predict_emotion(face)
-                    # วาดกรอบและแสดงผลอารมณ์
-                    cv2.rectangle(img, (x, y), (x+w, y+h), (0, 255, 0), 2)
-                    cv2.putText(img, emotion, (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
+    # เปิดกล้อง
+    video_capture = cv2.VideoCapture(0)
 
-            return av.VideoFrame.from_ndarray(img, format="bgr24")
+    if not video_capture.isOpened():
+        st.error("ไม่สามารถเปิดกล้องได้! ตรวจสอบการเชื่อมต่อ")
+        st.stop()
 
-    # UI ของ Streamlit
-    st.title("📷 ตรวจจับอารมณ์จากใบหน้า")
-    st.write("🔹 เปิดกล้องและดูการคาดการณ์อารมณ์แบบเรียลไทม์!")
+    frame_placeholder = st.empty()
+    prediction_placeholder = st.empty()
 
-    # เรียกใช้งาน streamlit-webrtc
-    webrtc_streamer(key="face-emotion", video_transformer_factory=EmotionVideoTransformer)
+    st.write("กรุณาให้ใบหน้าอยู่กลางกล้อง แล้วดูผลการทำนาย!")
+
+    # วนลูปอ่านเฟรมจากกล้อง
+    while True:
+        ret, frame = video_capture.read()
+        if not ret:
+            st.error("ไม่สามารถอ่านข้อมูลจากกล้องได้!")
+            break
+
+        frame = cv2.flip(frame, 1)
+        emotion, face_coords = predict_emotion(frame)
+
+        if face_coords:
+            x, y, w, h = face_coords
+            cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
+            cv2.putText(frame, emotion, (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
+
+        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        frame_placeholder.image(frame_rgb, channels="RGB")
+
+        if emotion:
+            prediction_placeholder.write(f"### อารมณ์ที่ตรวจพบ: **{emotion}**")
+
+        time.sleep(0)  # ลดความเร็วในการแสดงผล
+
+    video_capture.release()
+    cv2.destroyAllWindows()

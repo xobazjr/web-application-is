@@ -113,7 +113,7 @@ if page == "Home":
         st.markdown('<div class="title-container"><p class="title"><h1>AI-Powered <span class="highlight">Insights</span><br> Simplified</h1></p></div>', unsafe_allow_html=True)
 
     with col2:
-        st.image("assets/images/robot-ai.png", width=550) # Update path to correct location of image
+        st.image("/Users/xobazjr/Documents/GitHub/web-application-is/assets/images/robot-ai.png", width=550) # Update path to correct location of image
     
     # Data Preparation Section
     st.markdown("## Data Preparation")
