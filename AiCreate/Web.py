@@ -13,9 +13,16 @@ def show():
     def load_emotion_model():
         MODEL_PATH = "assets/NNmodel.h5"
         try:
+            # ตรวจสอบว่าโมเดลมีอยู่จริงในตำแหน่งนั้น
+            import os
+            if not os.path.exists(MODEL_PATH):
+                raise FileNotFoundError(f"❌ ไม่พบไฟล์โมเดลที่ {MODEL_PATH}")
             model = load_model(MODEL_PATH)
             st.success("✅ โหลดโมเดลสำเร็จ!")
             return model
+        except FileNotFoundError as e:
+            st.error(str(e))
+            return None
         except Exception as e:
             st.error(f"❌ ไม่สามารถโหลดโมเดลได้: {e}")
             return None
@@ -23,8 +30,15 @@ def show():
     # โหลด Haar Cascade เพียงครั้งเดียว
     @st.cache_resource
     def load_cascade():
-        cascade_path = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
-        return cv2.CascadeClassifier(cascade_path)
+        try:
+            cascade_path = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
+            # ตรวจสอบว่าไฟล์ Haar Cascade มีอยู่จริง
+            if not os.path.exists(cascade_path):
+                raise FileNotFoundError(f"❌ ไม่พบไฟล์ Haar Cascade ที่ {cascade_path}")
+            return cv2.CascadeClassifier(cascade_path)
+        except Exception as e:
+            st.error(f"❌ ไม่สามารถโหลด Haar Cascade: {e}")
+            return None
 
     # คลาสสำหรับประมวลผลวิดีโอจากกล้อง
     class EmotionVideoTransformer(VideoTransformerBase):
