@@ -89,9 +89,6 @@ def show():
             - [TensorFlow Documentation](https://www.tensorflow.org/)
             - [Scikit-learn Documentation](https://scikit-learn.org/stable/)
             - [When Maths Meet Coding](https://youtu.be/uqomO_BZ44g?si=i9o4Ktd6Q2vlod6L)
-            - [How to Install Homebrew on Mac](https://www.youtube.com/watch?v=IWJKRmFLn-g)
-            - [GitHub upload large files](https://www.youtube.com/watch?v=9HCsSD5PMSk)
-            - [Webcam not opening in share.streamlit](https://discuss.streamlit.io/t/webcam-not-opening-in-share-streamlit/49180)
         - **Dataset ที่นำมาใช้:** 
             - [รายได้ของครัวเรือน](https://catalog.nso.go.th/dataset/ns_08_20241)
             - [ราคาประเมินที่ดิน](https://catalog.treasury.go.th/tl/dataset/land-valuation)
