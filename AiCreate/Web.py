@@ -57,6 +57,9 @@ def show():
 
         def transform(self, frame):
             img = frame.to_ndarray(format="bgr24")  # แปลงเป็น BGR สำหรับ OpenCV
+            if img is None:
+                st.error("❌ ไม่สามารถรับข้อมูลจากกล้องได้")
+                return frame
             gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
             faces = self.face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(50, 50))
 
