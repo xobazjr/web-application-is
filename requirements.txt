@@ -8,3 +8,4 @@ tensorflow
 av
 streamlit-webrtc
 opencv-python
+opencv-contrib-python
